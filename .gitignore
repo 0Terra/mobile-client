@@ -5,9 +5,13 @@
 /[Bb]uilds/
 /Assets/AssetStoreTools*
 /Assets/GO Map - 3D Map For AR Gaming
+/Assets/GO Map - 3D Map For AR Gaming.meta
 /Assets/GoogleARCore
+/Assets/GoogleARCore.meta
 /Assets/TextMesh Pro
+/Assets/TextMesh Pro.meta
 /Assets/UnityARKitPlugin
+/Assets/UnityARKitPlugin.meta
 
 
 # Visual Studio 2015 cache directory
