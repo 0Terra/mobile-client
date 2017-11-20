@@ -69,4 +69,4 @@ To create your demo-land:
 * add prefab in field `Scene Root Prefab` in object `AREnvironmentManager` on scene `AREnvironment`
 
 ## Feedback and support
-For get help and give feedback join our [slack channel](https://0terra.slack.com) or write an [e-mail](contact@0terra.com). You can also report bugs by opening a [github issue](https://github.com/0Terra/mobile-client/issues).
+For get help and give feedback write an [e-mail](contact@0terra.com). You can also report bugs by opening a [github issue](https://github.com/0Terra/mobile-client/issues).
