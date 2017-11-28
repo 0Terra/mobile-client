@@ -14,6 +14,10 @@ public class AREnvironmentManager : MonoBehaviour {
 	public ARCameraManager arCameraManager;
 	public GameObject sceneRootPrefab;
 	public GameObject objectPrefab;
+
+	[SerializeField]
+	public List<LandScene> landScenes;
+
 	private ARPlaneAnchorManager arPlaneAnchorManager;
 	private List<GameObject> objects;
 
@@ -38,10 +42,19 @@ public class AREnvironmentManager : MonoBehaviour {
 		findPlane.SetActive(false);
 		arCameraManager.RunSession (false, false);
 
-		Vector3 pos = UserData.Instance.CenterOffset;
+		Vector3 pos = -1 * UserData.Instance.LandInfo.OffsetFromCenter;
 		pos -= UnityARMatrixOps.GetPosition (arCameraManager.Session.GetCameraPose ());
 		pos.y = UnityARMatrixOps.GetPosition (arPlaneAnchorManager.GetCurrentPlaneAnchors () [0].transform).y;
-		objects.Add (Instantiate (sceneRootPrefab, pos, Quaternion.identity));
+
+		GameObject prefab = sceneRootPrefab;
+
+		foreach (LandScene ls in landScenes) {
+			if (ls.id == UserData.Instance.LandInfo.LandId) {
+				prefab = ls.scene;
+			}
+		}
+
+		objects.Add (Instantiate (prefab, pos, Quaternion.identity));
 
 //		Vector3 pos01 = Vector3.zero;
 //		pos01.y = UnityARMatrixOps.GetPosition (arPlaneAnchorManager.GetCurrentPlaneAnchors () [0].transform).y;

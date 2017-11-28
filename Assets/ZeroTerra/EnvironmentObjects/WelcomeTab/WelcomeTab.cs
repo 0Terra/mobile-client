@@ -46,7 +46,7 @@ public class WelcomeTab : MonoBehaviour {
 	IEnumerator IE_CheckKeyboardStatus() {
 		TouchScreenKeyboard keyboard = TouchScreenKeyboard.Open ("");
 
-		while (keyboard.status == TouchScreenKeyboard.Status.Visible) {
+		while (keyboard.active) {
 			yield return new WaitForSecondsRealtime (0.1f);
 		}
 

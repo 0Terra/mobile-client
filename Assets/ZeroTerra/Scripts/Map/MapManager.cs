@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 public class MapManager : MonoBehaviour {
 
 	public Shadow shadow;
-	public GameObject buttonAR;
+	public GameObject panel;
 	public GameObject logo;
 	public GOMapExtension goMap;
 
@@ -25,12 +25,9 @@ public class MapManager : MonoBehaviour {
 	}
 
 	public void OnARMode_Click () {
-		buttonAR.SetActive (false);
-		UserData.Instance.CurrentRegioID = goMap.GetCoordinateCurrentRegionID ();
-		UserData.Instance.CenterOffset = goMap.GetOffsetFromCenterCurrentRegion ();
+		panel.SetActive (false);
 
-		Debug.Log ("CurrentRegionID: " + UserData.Instance.CurrentRegioID);
-		Debug.Log ("CenterOffset: " + UserData.Instance.CenterOffset);
+		Debug.Log (UserData.Instance.LandInfo.ToString());
 
 		StartCoroutine (GotoAREnvironment());
 	}

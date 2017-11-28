@@ -15,6 +15,5 @@ public class UserData {
 		}
 	}
 
-	public Vector3 CenterOffset;
-	public Coordinates CurrentRegioID;
+	public LandInfo LandInfo = new LandInfo();
 }

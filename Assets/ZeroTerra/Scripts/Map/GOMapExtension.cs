@@ -3,14 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using GoMap;
 using GoShared;
+using TMPro;
 
 public class GOMapExtension : GOMap {
 
-	[SerializeField] private Material regionBorder;
+	[SerializeField] private GameObject landIdTextPrefab;
 
-	private Dictionary<Vector3, GameObject> regions = new Dictionary<Vector3, GameObject> ();
-	private Coordinates lastCurrentLocation;
-	private float vectorSizeRegion = -1;
+	[SerializeField] private Material regionBorder;
+	[SerializeField] private Material regionBorderHighLight;
+
+	[SerializeField] private TextMeshProUGUI landId;
+	[SerializeField] private TextMeshProUGUI landCoords;
+	[SerializeField] private TextMeshProUGUI playerCoords;
+	[SerializeField] private TextMeshProUGUI centerOffset;
+
+	private Dictionary<string, GameObject> regions = new Dictionary<string, GameObject> ();
 
 	private void Start() {
 		locationManager.onOriginSet.AddListener((Coordinates) => {OnOriginSet(Coordinates);});
@@ -18,93 +25,80 @@ public class GOMapExtension : GOMap {
 	}
 
 	private void OnOriginSet (Coordinates currentLocation) {
-		lastCurrentLocation = currentLocation;
 		UpdateRegions (currentLocation);
 	}
 
 	private void OnLocationChanged (Coordinates currentLocation) {
-		lastCurrentLocation = currentLocation;
 		UpdateRegions (currentLocation);
 	}
 
 	private void UpdateRegions(Coordinates location) {
-		if (vectorSizeRegion < 0) {
-			Coordinates offsetLocation = new Coordinates (location.latitude + 0.0005556, location.longitude + 0.0005556, location.altitude);
-			vectorSizeRegion = Mathf.Abs (offsetLocation.convertCoordinateToVector ().x - location.convertCoordinateToVector ().x);
-		}
 
-		Vector3 startPos = location.convertCoordinateToVector ();
+		UserData.Instance.LandInfo.Init (location.latitude, location.longitude);
 
-		for (float x = startPos.x - 600; x < startPos.x + 700; x += vectorSizeRegion) {
-			for (float z = startPos.z - 300; z < startPos.z + 800; z += vectorSizeRegion) {
-				Vector3 pos = new Vector3 (x, 0f, z);
-				pos.x = Mathf.Floor (pos.x / (float)vectorSizeRegion) * (int)vectorSizeRegion;
-				pos.z = Mathf.Floor (pos.z / (float)vectorSizeRegion) * (int)vectorSizeRegion;
+		landId.text = UserData.Instance.LandInfo.LandId;
+		landCoords.text = UserData.Instance.LandInfo.Latitude.ToString ("###.000000") + ", " + UserData.Instance.LandInfo.Longitude.ToString ("###.000000");
+		playerCoords.text = location.latitude.ToString ("###.000000") + ", " + location.longitude.ToString ("###.000000");
+		centerOffset.text = (UserData.Instance.LandInfo.OffsetFromCenter * -1f).ToString ();
 
-				RenderRegion (pos, vectorSizeRegion);
+		LandInfo li = new LandInfo ();
+		Vector3 pos = Vector3.zero;
+		Vector3 borderOffset = Vector3.zero;
+		Vector3 landOffset = Vector3.zero;
+
+		for (int indLat = -8; indLat <= 8; ++indLat) {
+			for (int indLon = -8; indLon <= 8; ++indLon) {
+
+				li.Init (location.latitude + indLat * LandConsts.twoSeconds, location.longitude + indLon * LandConsts.twoSeconds );
+				pos = GPSEncoder.GPSToUCS (new Vector2 ((float)li.Latitude, (float)li.Longitude));
+				borderOffset = GPSEncoder.GPSToUCS (new Vector2 ((float)(li.Latitude + LandConsts.oneSecond), (float)(li.Longitude + LandConsts.oneSecond)));
+				borderOffset -= pos;
+
+				RenderRegion (li.LandId, pos, borderOffset, indLat == 0 && indLon == 0);
 			}
 		}
 	}
 
-	private void RenderRegion (Vector3 pos, float vectorSizeRegion) {
-		if (RegionIsRendered (pos))
-			return;
+	private void RenderRegion(string landId, Vector3 pos, Vector3 borderOffset, bool isSelected) {
 
-		List<Vector3> figure = new List<Vector3> () { (pos + Vector3.up) };
-		figure.Add (new Vector3 (pos.x + vectorSizeRegion, 1f, pos.z));
-		figure.Add (new Vector3 (pos.x + vectorSizeRegion, 1f, pos.z - vectorSizeRegion));
-		figure.Add (new Vector3 (pos.x, 1f, pos.z - vectorSizeRegion));
+		GameObject line = null;
 
-		GameObject line = new GameObject ("Line " + pos);
+		if (!regions.ContainsKey (landId)) {
+			List<Vector3> figure = new List<Vector3> ();
+			figure.Add (new Vector3 (pos.x + borderOffset.x, 1f, pos.z - borderOffset.z));
+			figure.Add (new Vector3 (pos.x - borderOffset.x, 1f, pos.z - borderOffset.z));
+			figure.Add (new Vector3 (pos.x - borderOffset.x, 1f, pos.z + borderOffset.z));
+			figure.Add (new Vector3 (pos.x + borderOffset.x, 1f, pos.z + borderOffset.z));
+			figure.Add (new Vector3 (pos.x + borderOffset.x, 1f, pos.z - borderOffset.z));
 
-		GOLineMesh lineMesh = new GOLineMesh (figure);
-		lineMesh.width = 0.3F;
-		lineMesh.load (line);
+			line = new GameObject ("Line " + pos);
 
-		line.GetComponent<MeshRenderer> ().material = regionBorder;
+			GOLineMesh lineMesh = new GOLineMesh (figure);
+			lineMesh.width = 0.6f;
+			lineMesh.load (line);
 
-		regions.Add (pos, null);
-	}
+			GameObject textObj = Instantiate (landIdTextPrefab, new Vector3 (pos.x, 1f, pos.z + borderOffset.z - 3f),
+				Quaternion.Euler(90f, 0f, 0f), line.transform) as GameObject;
 
-	private bool RegionIsRendered (Vector3 pos) {
-		return regions.ContainsKey (pos);
-	}
+			textObj.GetComponent<TextMeshPro>().text = landId;
 
-	public Coordinates GetCoordinateCurrentRegionID () {
-		Vector3 startPos = lastCurrentLocation.convertCoordinateToVector ();
+			regions.Add (landId, line);
+		}
+		else {
+			line = regions[landId];
+		}
 
-		Vector3 pos = new Vector3 (startPos.x, 0f, startPos.z);
-		pos.x = Mathf.Floor (pos.x / (float)vectorSizeRegion) * (int)vectorSizeRegion;
-		pos.z = Mathf.Floor (pos.z / (float)vectorSizeRegion) * (int)vectorSizeRegion;
+		if (isSelected) {
+			line.GetComponent<MeshRenderer> ().material = regionBorderHighLight;
+		} else {
+			line.GetComponent<MeshRenderer> ().material = regionBorder;
+		}
 
-		pos.x += vectorSizeRegion / 2F;
-		pos.z += vectorSizeRegion / 2F;
-
-		return Coordinates.convertVectorToCoordinates (pos);
-	}
-
-	public Vector3 GetOffsetFromCenterCurrentRegion () {
-		Vector3 startPos = lastCurrentLocation.convertCoordinateToVector ();
-
-		Vector3 pos = new Vector3 (startPos.x, 0f, startPos.z);
-		pos.x = Mathf.Floor (pos.x / (float)vectorSizeRegion) * (int)vectorSizeRegion;
-		pos.z = Mathf.Floor (pos.z / (float)vectorSizeRegion) * (int)vectorSizeRegion;
-
-		pos.x += vectorSizeRegion / 2F;
-		pos.z += vectorSizeRegion / 2F;
-
-		Coordinates cor = Coordinates.convertVectorToCoordinates (pos);
-		float latitudeOffset = 0f; //z
-		float longitudeOffset = 0f; //x
-
-		latitudeOffset = GetCoordinate.GetDistanceFromLatLonInM (cor.latitude, cor.longitude, lastCurrentLocation.latitude, cor.longitude);
-		longitudeOffset = GetCoordinate.GetDistanceFromLatLonInM (cor.latitude, cor.longitude, cor.latitude, lastCurrentLocation.longitude);
-
-		if (lastCurrentLocation.latitude < cor.latitude)
-			latitudeOffset *= -1F;
-		if (lastCurrentLocation.longitude < cor.longitude)
-			longitudeOffset *= -1F;
-
-		return new Vector3 (longitudeOffset, 0f, latitudeOffset);
+		if (isSelected && line.transform.position.y < 0.1f) {
+			line.transform.Translate (new Vector3(0, 0.1f, 0));
+		}
+		else if (!isSelected && line.transform.position.y >= 0.1f) {
+			line.transform.Translate (new Vector3(0, -0.1f, 0));
+		}
 	}
 }
